@@ -32,7 +32,7 @@
 
 | 文件 | 改动 |
 |---|---|
-| `app/.../res/values/themes.xml` | `Theme.TermuxActivity`：`windowBackground=@drawable/splash_se` + Android 12+ `windowSplashScreenBackground/AnimatedIcon` |
+| `app/.../res/values/themes.xml` | `Theme.TermuxActivity`：`windowBackground=@drawable/splash_se` + Android 12+ `windowSplashScreenBackground`、`windowSplashScreenAnimatedIcon=@drawable/splash_icon`（1024 高分定制图标，替代 192px mipmap —— 平板 288dp 容器放大 4 倍导致模糊的根因） |
 | `app/.../res/values-night/themes.xml` | 同上（暗色主题同步） |
 | `res/mipmap-{m,h,x,xx,xxx}hdpi/ic_launcher{,_round}.png` ×10 | 替换为**智衍像素「智」渐变图标**（legacy 全套） |
 | （对照）`res/mipmap-anydpi-v26/` | **已删除**——自适应图标在部分设备前景渲染异常，回退 legacy 完整设计（round-73 实测决策） |
@@ -52,7 +52,8 @@
 | `app/src/main/java/com/termux/app/SelfWebViewActivity.java` | 内嵌浏览器首屏：加载 `assets/se_loading.html` → 每秒轮询 `:3000`/`:5173` → 双服务就绪自动跳前端；含文件选择器（上传）与 DownloadManager（下载）两大 WebView 修复 |
 | `app/src/main/assets/se_loading.html` | **首屏加载页**：智字呼吸动画 + 标语 + SelfEvolution + 「制作人:老实人留一手」+ 正在启动服务… |
 | `app/src/main/res/drawable/splash_se.xml` | 原生开屏 layer-list（se_bg 底色 + 居中 `splash_compose`） |
-| `app/src/main/res/drawable-nodpi/splash_compose.png` | 开屏合成图（图标 + 标语 + SelfEvolution + 制作人行，1400×1000） |
+| `app/src/main/res/drawable-nodpi/splash_icon.png` | 系统开屏（Android 12+）专用图标：1024 画布 + 800 图形（较 288dp 显示缩小约 22%，平板上不再上采样） |
+| `app/src/main/res/drawable-nodpi/splash_compose.png` | 开屏合成图（图标盒 520→430 缩小 + 标语 + SelfEvolution + 制作人行，1400×1000） |
 | `app/src/main/res/drawable-*/ic_foreground_layer.png` ×5 | 图标前景层（密度分桶） |
 | `overlay/` | 自定义 overlay 小件：品牌 `etc/motd`、`etc/profile.d/90-brand-init.sh`（双服务守护 + 浏览器自启钩子）、终端 dotfiles |
 | `scripts/` | `repack_bootstrap.py`（bootstrap 合并重打包）、`gen_keystore.sh`、`gen_icons.sh`、`AddSplashCredit.java`（开屏制作人行渲染） |

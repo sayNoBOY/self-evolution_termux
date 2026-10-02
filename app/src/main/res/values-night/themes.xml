@@ -14,7 +14,7 @@
 
         <item name="android:windowBackground">@drawable/splash_se</item>
         <item name="android:windowSplashScreenBackground">@color/se_bg</item>
-        <item name="android:windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_icon</item>
 
         <!-- Avoid action mode toolbar pushing down terminal content when
              selecting text on pre-6.0 (non-floating toolbar). -->
