@@ -1,0 +1,7 @@
+# ~/.bashrc — 智衍 SelfEvolution 预置模板（首启部署，已存在不覆盖）
+shopt -s histappend
+export HISTCONTROL=ignoreboth
+alias ll='ls -l --color=auto'
+alias la='ls -la --color=auto'
+alias se-status='ss -ltn | grep -E ":3000|:5173"; tail -5 ${TMPDIR:-/tmp}/se-services.log 2>/dev/null'
+alias se-restart='$PREFIX/share/selfevolution/restart.sh all'

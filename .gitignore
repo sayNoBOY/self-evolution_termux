@@ -1,0 +1,26 @@
+# ── 构建产物 ──────────────────────────────
+build/
+.gradle/
+*/build/
+app/release/
+outputs/
+*.apk
+*.aab
+
+# ── bootstrap zip（单文件过大，不入库；获取/重打包方法见 README）──
+app/src/main/cpp/bootstrap-*.zip
+
+# ── 发布签名密钥：绝不入库 ─────────────────
+keystore/
+*.jks
+# 官方源码自带的 debug 测试密钥（上游公开件），需保留以便 debug 构建
+!app/testkey_untrusted.jks
+
+# ── 本地环境文件 ─────────────────────────
+local.properties
+
+# ── 杂项 ─────────────────────────────────
+__pycache__/
+*.pyc
+.DS_Store
+*.log

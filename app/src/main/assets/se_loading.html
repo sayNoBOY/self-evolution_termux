@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>智衍 SelfEvolution</title>
+<style>
+  html, body { margin:0; height:100%; background:#0B1220; overflow:hidden;
+    font-family:-apple-system,"PingFang SC","Noto Sans CJK SC",sans-serif; }
+  .wrap { height:100%; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; background:linear-gradient(135deg,#0B1220 0%,#14516B 60%,#1B6B7A 100%); }
+  .glyph-box { position:relative; width:168px; height:168px; display:flex;
+    align-items:center; justify-content:center; }
+  .glyph { font-size:112px; font-weight:700; color:#4ADE80; line-height:1;
+    text-shadow:0 0 34px rgba(74,222,128,.35); animation:breathe 2.6s ease-in-out infinite; }
+  /* 自进化粒子：像素方块自下而上升腾、由虚变实 */
+  .p { position:absolute; width:12px; height:12px; background:#4ADE80; opacity:0;
+    animation:rise 2.4s ease-in-out infinite; }
+  .p1 { left:6px;  bottom:6px;  animation-delay:0s;   }
+  .p2 { left:30px; bottom:34px; width:15px; height:15px; animation-delay:.4s; }
+  .p3 { left:58px; bottom:64px; width:19px; height:19px; animation-delay:.8s; }
+  .p4 { right:8px; top:14px;    animation-delay:1.2s; }
+  @keyframes rise {
+    0%   { transform:translateY(26px) scale(.5); opacity:0; }
+    45%  { opacity:1; }
+    100% { transform:translateY(-46px) scale(1);  opacity:0; }
+  }
+  @keyframes breathe { 0%,100%{transform:scale(1);} 50%{transform:scale(1.07);} }
+  .title { margin-top:34px; color:#fff; font-size:30px; letter-spacing:1px; }
+  .sub   { margin-top:12px; color:#8FC7D9; font-size:16px; letter-spacing:3px; }
+  .credit{ margin-top:40px; color:#8FA3B8; font-size:15px; letter-spacing:2px; }
+  .status{ margin-top:52px; color:#9FD6C6; font-size:15px; display:flex;
+    align-items:center; gap:12px; }
+  .dot { width:9px; height:9px; border-radius:50%; background:#4ADE80;
+    animation:blink 1s ease-in-out infinite; }
+  .dot:nth-child(2){ animation-delay:.2s; } .dot:nth-child(3){ animation-delay:.4s; }
+  @keyframes blink { 0%,100%{opacity:.2; transform:scale(.7);} 50%{opacity:1; transform:scale(1);} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="glyph-box">
+    <span class="p p1"></span><span class="p p2"></span>
+    <span class="p p3"></span><span class="p p4"></span>
+    <span class="glyph">智</span>
+  </div>
+  <div class="title">智衍，无限进化成你想要的模样</div>
+  <div class="sub">SelfEvolution</div>
+  <div class="credit">制作人:老实人留一手</div>
+  <div class="status"><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    <span>正在启动服务…</span></div>
+</div>
+</body>
+</html>

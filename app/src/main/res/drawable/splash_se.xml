@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 智衍开屏：品牌底色 + 图标/标语合成图（居中） -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/se_bg"/>
+    <item>
+        <bitmap android:src="@drawable/splash_compose" android:gravity="center"/>
+    </item>
+</layer-list>
