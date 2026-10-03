@@ -95,7 +95,7 @@
             android:name=".app.SelfWebViewActivity"
             android:exported="true"
             android:launchMode="singleTop"
-            android:theme="@style/Theme.TermuxApp.DayNight.NoActionBar"
+            android:theme="@style/Theme.SelfWebView.DayNight.NoActionBar"
             android:configChanges="orientation|screenSize|smallestScreenSize|density|screenLayout|keyboard|keyboardHidden"/>
 
         <activity

@@ -34,6 +34,7 @@
 |---|---|
 | `app/.../res/values/themes.xml` | `Theme.TermuxActivity`：`windowBackground=@drawable/splash_se` + Android 12+ `windowSplashScreenBackground`、`windowSplashScreenAnimatedIcon=@drawable/splash_icon`（1024 高分定制图标，替代 192px mipmap —— 平板 288dp 容器放大 4 倍导致模糊的根因） |
 | `app/.../res/values-night/themes.xml` | 同上（暗色主题同步） |
+| `app/.../res/values/themes.xml` | +`Theme.SelfWebView.DayNight.NoActionBar`：内嵌浏览器页状态栏 `#16171d`（与前端暗色背景统一），覆盖上游基主题的 `red_800(#C4001D)` 红色状态栏 |
 | `res/mipmap-{m,h,x,xx,xxx}hdpi/ic_launcher{,_round}.png` ×10 | 替换为**智衍像素「智」渐变图标**（legacy 全套） |
 | （对照）`res/mipmap-anydpi-v26/` | **已删除**——自适应图标在部分设备前景渲染异常，回退 legacy 完整设计（round-73 实测决策） |
 
@@ -50,7 +51,7 @@
 | 文件/目录 | 说明 |
 |---|---|
 | `app/src/main/java/com/termux/app/SelfWebViewActivity.java` | 内嵌浏览器首屏：加载 `assets/se_loading.html` → 每秒轮询 `:3000`/`:5173` → 双服务就绪自动跳前端；含文件选择器（上传）与 DownloadManager（下载）两大修复；**P1 补丁**：① 静态 `sAlive`/`sUserExited`/`sLaunchPending` 供宿主判活补拉；② `onSaveInstanceState` 保存导航目标 + 主文档失败解锁重试回加载页 + 30s 超时错误页；③ `onNewIntent`（singleTop 幂等） |
-| `app/src/main/assets/se_loading.html` | **首屏加载页**：智字呼吸动画 + 标语 + SelfEvolution + 「制作人:老实人留一手」+ 正在启动服务… |
+| `app/src/main/assets/se_loading.html` | **首屏加载页**：智字呼吸动画 + 标语 + SelfEvolution + 「制作人:老实人留一手」+ 正在启动服务…；标题**响应式居中**（`min(30px,6.6vw)` + `nowrap` + `text-align:center`——修手机窄屏 14 字换行末行左贴边的“没居中”） |
 | `app/src/main/assets/se_error.html` | **P1-② 超时错误页**：30s 探测失败展示；「重新检测服务」（回加载页续轮询）+「打开终端」（JS 桥 `SeBridge.openTerminal()`，置退出标记防补拉循环） |
 | `app/src/main/res/drawable/splash_se.xml` | 原生开屏 layer-list（se_bg 底色 + 居中 `splash_compose`） |
 | `app/src/main/res/drawable-nodpi/splash_icon.png` | 系统开屏（Android 12+）专用图标：1024 画布 + 800 图形（较 288dp 显示缩小约 22%，平板上不再上采样） |

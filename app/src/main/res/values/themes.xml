@@ -48,4 +48,12 @@
         <item name="extraKeysButtonActiveBackgroundColor">@color/grey_500</item>
     </style>
 
+    <!-- 智衍：内嵌浏览器页（SelfWebViewActivity）主题 —— 状态栏与前端页面背景统一。
+         上游基主题 statusBarColor = ?attr/colorPrimaryVariant = red_800(#C4001D) 红色，
+         覆盖为前端暗色背景 #16171d（style.css 暗色偏好的背景变量值）。 -->
+    <style name="Theme.SelfWebView.DayNight.NoActionBar" parent="Theme.TermuxApp.DayNight.NoActionBar">
+        <item name="android:statusBarColor">#16171d</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+
 </resources>
