@@ -41,16 +41,17 @@
 
 | 文件 | 改动 |
 |---|---|
-| `app/.../AndroidManifest.xml` | ① `android:usesCleartextTraffic="true"`（内嵌页访问 `http://localhost:5173` 需要）；② 注册 **`SelfWebViewActivity`** |
-| `app/.../TermuxActivity.java` | `onCreate` 中冷启动**立即拉起 `SelfWebViewActivity`**（终端与 bootstrap 初始化转后台照常进行，返回键回终端） |
+| `app/.../AndroidManifest.xml` | ① `android:usesCleartextTraffic="true"`（内嵌页访问 `http://localhost:5173` 需要）；② 注册 **`SelfWebViewActivity`** 并设 `launchMode="singleTop"`（P1-③：重复 `am start` 走 onNewIntent，不再叠实例） |
+| `app/.../TermuxActivity.java` | ① `onCreate` 中冷启动**立即拉起 `SelfWebViewActivity`**（终端与 bootstrap 初始化转后台照常进行，返回键回终端）；② **P1-① 后台重开自愈**：`onResume`/`onNewIntent` 调 `ensureSelfWebView()`——singleTask clear-top 销毁 WebView 后补拉，防循环三闸（`sUserExited`/`sLaunchPending`/`sAlive` 弱引用判活） |
 | `app/.../TermuxInstaller.java` | 解压阶段所有文件统一 `chmod 0700`（修复 zip 内 npm/restart.sh 等执行位丢失 → Permission denied） |
 
 ## 二、新增的文件（本工程原创）
 
 | 文件/目录 | 说明 |
 |---|---|
-| `app/src/main/java/com/termux/app/SelfWebViewActivity.java` | 内嵌浏览器首屏：加载 `assets/se_loading.html` → 每秒轮询 `:3000`/`:5173` → 双服务就绪自动跳前端；含文件选择器（上传）与 DownloadManager（下载）两大 WebView 修复 |
+| `app/src/main/java/com/termux/app/SelfWebViewActivity.java` | 内嵌浏览器首屏：加载 `assets/se_loading.html` → 每秒轮询 `:3000`/`:5173` → 双服务就绪自动跳前端；含文件选择器（上传）与 DownloadManager（下载）两大修复；**P1 补丁**：① 静态 `sAlive`/`sUserExited`/`sLaunchPending` 供宿主判活补拉；② `onSaveInstanceState` 保存导航目标 + 主文档失败解锁重试回加载页 + 30s 超时错误页；③ `onNewIntent`（singleTop 幂等） |
 | `app/src/main/assets/se_loading.html` | **首屏加载页**：智字呼吸动画 + 标语 + SelfEvolution + 「制作人:老实人留一手」+ 正在启动服务… |
+| `app/src/main/assets/se_error.html` | **P1-② 超时错误页**：30s 探测失败展示；「重新检测服务」（回加载页续轮询）+「打开终端」（JS 桥 `SeBridge.openTerminal()`，置退出标记防补拉循环） |
 | `app/src/main/res/drawable/splash_se.xml` | 原生开屏 layer-list（se_bg 底色 + 居中 `splash_compose`） |
 | `app/src/main/res/drawable-nodpi/splash_icon.png` | 系统开屏（Android 12+）专用图标：1024 画布 + 800 图形（较 288dp 显示缩小约 22%，平板上不再上采样） |
 | `app/src/main/res/drawable-nodpi/splash_compose.png` | 开屏合成图（图标盒 520→430 缩小 + 标语 + SelfEvolution + 制作人行，1400×1000） |

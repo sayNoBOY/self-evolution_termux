@@ -89,10 +89,12 @@
             </intent-filter>
         </activity-alias>
 
-        <!-- 智衍：应用内嵌浏览器（双服务就绪后由初始化脚本拉起，加载前端 :5173） -->
+        <!-- 智衍：应用内嵌浏览器（双服务就绪后由初始化脚本拉起，加载前端 :5173）
+             P1-③：singleTop —— profile.d 的重复 am start 走 onNewIntent，不再叠实例 -->
         <activity
             android:name=".app.SelfWebViewActivity"
             android:exported="true"
+            android:launchMode="singleTop"
             android:theme="@style/Theme.TermuxApp.DayNight.NoActionBar"
             android:configChanges="orientation|screenSize|smallestScreenSize|density|screenLayout|keyboard|keyboardHidden"/>
 

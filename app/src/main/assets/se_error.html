@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>智衍 SelfEvolution</title>
+<style>
+  html, body { margin:0; height:100%; overflow:hidden;
+    font-family:-apple-system,"PingFang SC","Noto Sans CJK SC",sans-serif; }
+  .wrap { height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background:linear-gradient(135deg,#0B1220 0%,#14516B 60%,#1B6B7A 100%); text-align:center;
+    padding:0 32px; box-sizing:border-box; }
+  .glyph { font-size:64px; font-weight:700; color:#4ADE80; line-height:1;
+    text-shadow:0 0 24px rgba(74,222,128,.3); }
+  .title { margin-top:26px; color:#fff; font-size:22px; letter-spacing:1px; }
+  .desc  { margin-top:14px; color:#9FD6C6; font-size:14px; line-height:1.7; }
+  .btns  { margin-top:34px; display:flex; gap:16px; }
+  .btn { padding:11px 26px; border-radius:8px; font-size:15px; cursor:pointer; border:1px solid transparent; }
+  .btn-retry { background:#4ADE80; color:#06341C; font-weight:600; }
+  .btn-term  { background:transparent; color:#8FC7D9; border-color:#3E6B7E; }
+  .btn:active { transform:scale(.97); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="glyph">智</div>
+  <div class="title">服务启动超时</div>
+  <div class="desc">已等待 30 秒，前后端服务仍未就绪。<br>可重试检测；服务恢复后也会自动进入。</div>
+  <div class="btns">
+    <button class="btn btn-retry" onclick="location.href='file:///android_asset/se_loading.html'">重新检测服务</button>
+    <button class="btn btn-term" onclick="SeBridge.openTerminal()">打开终端</button>
+  </div>
+</div>
+</body>
+</html>

@@ -8,13 +8,18 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.webkit.CookieManager;
+import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceError;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
 
+import java.lang.ref.WeakReference;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.concurrent.ExecutorService;
@@ -38,7 +43,17 @@ public class SelfWebViewActivity extends Activity {
     private static final String BACKEND_PROBE = "http://localhost:3000/";
     private static final String FRONTEND_PROBE = "http://localhost:5173/";
     private static final String LOADING_URL = "file:///android_asset/se_loading.html";
+    private static final String ERROR_URL = "file:///android_asset/se_error.html";
+    private static final long POLL_TIMEOUT_MS = 30_000L;
     private static final int FILE_CHOOSER_REQUEST = 0x51CE;
+
+    // ---- P1-① 自愈静态状态（参考报告 §四·P1）----
+    /** 存活实例弱引用：TermuxActivity.onResume/onNewIntent 据此判断是否需要补拉。 */
+    public static volatile WeakReference<SelfWebViewActivity> sAlive = null;
+    /** 用户经返回键（或错误页「打开终端」）主动退回终端时置 true，避免 onResume 死循环拉回。 */
+    public static volatile boolean sUserExited = false;
+    /** 已发起 startActivity 但实例尚未 onCreate —— 消除 onResume 早于实例创建的双拉竞态。 */
+    public static volatile boolean sLaunchPending = false;
 
     private WebView webView;
     private ValueCallback<Uri[]> filePathCallback;
@@ -46,6 +61,8 @@ public class SelfWebViewActivity extends Activity {
     private final ExecutorService io = Executors.newSingleThreadExecutor();
     private volatile boolean navigated = false;
     private volatile boolean checking = false;
+    private long mPollStartMs = 0L;
+    private boolean mErrorShown = false;
 
     /** 轮询：两个服务都返回任意 HTTP 响应即视为就绪（404 也算服务在）。 */
     private final Runnable pollRunnable = new Runnable() {
@@ -53,6 +70,14 @@ public class SelfWebViewActivity extends Activity {
         public void run() {
             pollHandler.postDelayed(this, 1000);
             if (navigated || checking) return;
+            // P1-②：超过 30s 仍探测失败 → 错误页（重试/打开终端）；轮询不停，服务恢复仍自动进前端
+            if (!mErrorShown && mPollStartMs > 0
+                    && SystemClock.elapsedRealtime() - mPollStartMs > POLL_TIMEOUT_MS) {
+                mErrorShown = true;
+                runOnUiThread(() -> {
+                    if (!navigated && webView != null) webView.loadUrl(ERROR_URL);
+                });
+            }
             checking = true;
             io.execute(() -> {
                 boolean front = probe(FRONTEND_PROBE);
@@ -84,6 +109,9 @@ public class SelfWebViewActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // P1-①：登记存活实例、清除“启动中”挂起标志（供 TermuxActivity.ensureSelfWebView 判活）
+        sAlive = new WeakReference<>(this);
+        sLaunchPending = false;
         webView = new WebView(this);
 
         webView.getSettings().setJavaScriptEnabled(true);
@@ -93,7 +121,36 @@ public class SelfWebViewActivity extends Activity {
         webView.getSettings().setMixedContentMode(android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         CookieManager.getInstance().setAcceptCookie(true);
 
-        webView.setWebViewClient(new WebViewClient());
+        // P1-②：错误页「打开终端」（JS 桥）——置退出标记，避免退回终端后被 onResume 立即补拉
+        webView.addJavascriptInterface(new Object() {
+            @JavascriptInterface
+            public void openTerminal() {
+                sUserExited = true;
+                runOnUiThread(SelfWebViewActivity.this::finish);
+            }
+        }, "SeBridge");
+
+        // P1-②：替换裸 WebViewClient —— 主文档加载失败时解锁一次性导航并回加载页重试，
+        //         加载页成功呈现时重置 30s 超时窗与错误页标志
+        webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
+                if (failingUrl == null || failingUrl.equals(view.getUrl())) handleMainFrameError();
+            }
+
+            @Override
+            public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
+                if (request.isForMainFrame()) handleMainFrameError();
+            }
+
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                if (LOADING_URL.equals(url)) {
+                    mErrorShown = false;
+                    mPollStartMs = SystemClock.elapsedRealtime();
+                }
+            }
+        });
 
         // ---- 修复①：上传（文件选择） ----
         webView.setWebChromeClient(new WebChromeClient() {
@@ -144,19 +201,42 @@ public class SelfWebViewActivity extends Activity {
 
         setContentView(webView);
 
-        // 显式 URL 直达（intent data / extra "url"），否则进加载动画轮询流
+        // 显式 URL 直达（intent data / extra "url"）> 状态恢复（P1-②）> 加载动画轮询流
         Intent intent = getIntent();
         String url = null;
         if (intent != null) {
             if (intent.getDataString() != null) url = intent.getDataString();
             else if (intent.getStringExtra("url") != null) url = intent.getStringExtra("url");
         }
+        if (url == null && savedInstanceState != null) {
+            // P1-②：进程回收后恢复原导航目标（仅恢复已就绪的远端页；加载页/错误页走轮询流）
+            String restored = savedInstanceState.getString("url");
+            if (restored != null && !restored.isEmpty()
+                    && !LOADING_URL.equals(restored) && !ERROR_URL.equals(restored)
+                    && !"about:blank".equals(restored)) {
+                url = restored;
+            }
+        }
         if (url != null) {
             navigated = true;
             webView.loadUrl(url);
         } else {
+            mPollStartMs = SystemClock.elapsedRealtime();
             webView.loadUrl(LOADING_URL);
             pollHandler.post(pollRunnable);
+        }
+    }
+
+    /** P1-②：主文档加载失败 —— 解锁一次性导航、重置超时窗，回到加载页继续轮询重试。 */
+    private void handleMainFrameError() {
+        navigated = false;
+        mErrorShown = false;
+        mPollStartMs = SystemClock.elapsedRealtime();
+        if (webView != null) {
+            String cur = webView.getUrl();
+            if (cur == null || (!LOADING_URL.equals(cur) && !ERROR_URL.equals(cur))) {
+                webView.loadUrl(LOADING_URL);
+            }
         }
     }
 
@@ -180,8 +260,33 @@ public class SelfWebViewActivity extends Activity {
 
     @Override
     public void onBackPressed() {
-        if (webView != null && webView.canGoBack()) webView.goBack();
-        else super.onBackPressed();
+        if (webView != null && webView.canGoBack()) {
+            webView.goBack();
+        } else {
+            // P1-①：用户主动退回终端 → 置标记，防止 TermuxActivity.onResume 立即补拉（防死循环）
+            sUserExited = true;
+            super.onBackPressed();
+        }
+    }
+
+    /** P1-③：singleTop 下重复 am start 幂等到达；未导航时重置超时窗继续轮询。 */
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        if (!navigated) {
+            mPollStartMs = SystemClock.elapsedRealtime();
+            mErrorShown = false;
+        }
+    }
+
+    /** P1-②：保存导航目标，进程回收后恢复（配合 onCreate 的 restored 分支）。 */
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        if (webView != null && webView.getUrl() != null) {
+            outState.putString("url", webView.getUrl());
+        }
     }
 
     @Override
@@ -189,6 +294,8 @@ public class SelfWebViewActivity extends Activity {
         pollHandler.removeCallbacksAndMessages(null);
         io.shutdownNow();
         if (webView != null) { webView.destroy(); webView = null; }
+        if (sAlive != null && sAlive.get() == this) sAlive = null;
+        sLaunchPending = false;
         super.onDestroy();
     }
 }

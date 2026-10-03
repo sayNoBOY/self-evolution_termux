@@ -218,7 +218,9 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         // 智衍：冷启动直接进入内嵌浏览器首屏 —— 加载动画页轮询双服务(3000/5173)，
         // 就绪后自动跳转前端；终端与 bootstrap 初始化在本 Activity 后台照常进行，
         // WebView 按返回键即回到终端。
+        // （后台重开自愈补拉见 onResume/onNewIntent 的 ensureSelfWebView —— 修复报告 P1-①）
         if (savedInstanceState == null) {
+            SelfWebViewActivity.sLaunchPending = true;
             startActivity(new Intent(this, SelfWebViewActivity.class));
         }
 
@@ -326,7 +328,40 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         // notification with the crash details if it did
         TermuxCrashUtils.notifyAppCrashFromCrashLogFile(this, LOG_TAG);
 
+        // P1-①：后台重开（singleTask clear-top 销毁 WebView 后根 Activity 被带回前台）
+        // 的自愈补拉 —— 修复报告 §四·P1-① 核心补丁
+        ensureSelfWebView();
+
         mIsOnResumeAfterOnCreate = false;
+    }
+
+    /** P1-①：singleTask 被再次启动（桌面图标入口）时的唯一系统回调。 */
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        // 显式重入 App：清除“用户主动退回终端”标记，允许重新补拉 WebView
+        SelfWebViewActivity.sUserExited = false;
+        ensureSelfWebView();
+    }
+
+    /**
+     * P1-①：WebView 不在栈上（被 clear-top 销毁）或尚未创建时补拉一次。
+     * 防循环三闸：sUserExited（用户退回终端）、sLaunchPending（已发起未创建的竞态）、
+     * sAlive 弱引用判活（实例尚在则不重复 startActivity）。
+     */
+    private void ensureSelfWebView() {
+        if (isFinishing() || mIsInvalidState || SelfWebViewActivity.sUserExited) return;
+        if (SelfWebViewActivity.sLaunchPending) return;
+        SelfWebViewActivity wv = SelfWebViewActivity.sAlive != null
+                ? SelfWebViewActivity.sAlive.get() : null;
+        if (wv != null && !wv.isFinishing() && !wv.isDestroyed()) return;
+        try {
+            SelfWebViewActivity.sLaunchPending = true;
+            startActivity(new Intent(this, SelfWebViewActivity.class));
+        } catch (Exception e) {
+            SelfWebViewActivity.sLaunchPending = false;
+            Logger.logError(LOG_TAG, "ensureSelfWebView failed: " + e.getMessage());
+        }
     }
 
     @Override

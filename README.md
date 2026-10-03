@@ -74,7 +74,7 @@ adb install -r app/build/outputs/apk/release/termux-app_apt-android-7-release_un
    验证方法：从 APK 里解出 `lib/arm64-v8a/libtermux-bootstrap.so`，
    在其中定位并剥离内嵌 zip（EOCD），比对 SHA-256 与源 zip 一致。
 3. **版本号**：`app/build.gradle` 的 `versionCode`（形如日期 20261002）+ `versionName`
-   （形如 `0.118.0-se5`）。每次对外发布递增，`validateVersionName()` 会做 semver 校验。
+   （形如 `0.118.0-se6`）。每次对外发布递增，`validateVersionName()` 会做 semver 校验。
 
 ## bootstrap 从哪来（不入库的大文件）
 
@@ -114,6 +114,10 @@ python3 scripts/repack_bootstrap.py \
 ```
 
 - 终端与 WebView 并存：WebView 按**返回键**回终端；终端内可手动 `restart.sh` 管理服务。
+- **后台重开自愈（P1）**：进程存活时点桌面图标会触发 singleTask clear-top 销毁 WebView——
+  `TermuxActivity.onResume/onNewIntent` 检测到 WebView 不在栈上会自动补拉；
+  用户主动返回键退出不会被拉回（`sUserExited` 标记）；30s 探测失败进 `se_error.html`
+  （重试/打开终端）；`singleTop` 保证栈内单实例。
 - 上传/下载已接系统（`WebChromeClient.onShowFileChooser` + `DownloadManager`）。
 
 ## 安装 / 升级语义（重要）
