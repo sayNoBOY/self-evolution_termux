@@ -50,7 +50,7 @@
 
 | 文件/目录 | 说明 |
 |---|---|
-| `app/src/main/java/com/termux/app/SelfWebViewActivity.java` | 内嵌浏览器首屏：加载 `assets/se_loading.html` → 每秒轮询 `:3000`/`:5173` → 双服务就绪自动跳前端；含文件选择器（上传）与 DownloadManager（下载）两大修复；**P1 补丁**：① 静态 `sAlive`/`sUserExited`/`sLaunchPending` 供宿主判活补拉；② `onSaveInstanceState` 保存导航目标 + 主文档失败解锁重试回加载页 + 30s 超时错误页；③ `onNewIntent`（singleTop 幂等） |
+| `app/src/main/java/com/termux/app/SelfWebViewActivity.java` | 内嵌浏览器首屏：加载 `assets/se_loading.html` → 每秒轮询 `:3000`/`:5173` → 双服务就绪自动跳前端；含文件选择器（上传）与 DownloadManager（下载）两大修复；**P1 补丁**：① 静态 `sAlive`/`sUserExited`/`sLaunchPending` 供宿主判活补拉；② `onSaveInstanceState` 保存导航目标 + 主文档失败解锁重试回加载页 + 30s 超时错误页；③ `onNewIntent`（singleTop 幂等）；**主页禁回启动页**：进入 `localhost:5173` 时一次性 `clearHistory()`（回加载页时重置标志，错误恢复循环同样覆盖） |
 | `app/src/main/assets/se_loading.html` | **首屏加载页**：智字呼吸动画 + 标语 + SelfEvolution + 「制作人:老实人留一手」+ 正在启动服务…；标题**响应式居中**（`min(30px,6.6vw)` + `nowrap` + `text-align:center`——修手机窄屏 14 字换行末行左贴边的“没居中”） |
 | `app/src/main/assets/se_error.html` | **P1-② 超时错误页**：30s 探测失败展示；「重新检测服务」（回加载页续轮询）+「打开终端」（JS 桥 `SeBridge.openTerminal()`，置退出标记防补拉循环） |
 | `app/src/main/res/drawable/splash_se.xml` | 原生开屏 layer-list（se_bg 底色 + 居中 `splash_compose`） |

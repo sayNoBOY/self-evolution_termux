@@ -63,6 +63,8 @@ public class SelfWebViewActivity extends Activity {
     private volatile boolean checking = false;
     private long mPollStartMs = 0L;
     private boolean mErrorShown = false;
+    /** 进入前端主页后清过一次历史 → 后退不再回到启动加载页（每实例一次）。 */
+    private boolean mHistoryCleared = false;
 
     /** 轮询：两个服务都返回任意 HTTP 响应即视为就绪（404 也算服务在）。 */
     private final Runnable pollRunnable = new Runnable() {
@@ -148,6 +150,14 @@ public class SelfWebViewActivity extends Activity {
                 if (LOADING_URL.equals(url)) {
                     mErrorShown = false;
                     mPollStartMs = SystemClock.elapsedRealtime();
+                    mHistoryCleared = false; // 回到加载页 → 下次进主页再清一次（错误恢复循环）
+                }
+                // 禁止从主页后退回启动页：启动页/错误页 → 前端主页的历史只清一次，
+                // 清后 canGoBack=false → 返回键走退出到终端（既有语义），不再见 se_loading
+                if (!mHistoryCleared && url != null
+                        && url.startsWith("http://localhost:5173")) {
+                    mHistoryCleared = true;
+                    view.clearHistory();
                 }
             }
         });
