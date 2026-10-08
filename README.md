@@ -74,7 +74,7 @@ adb install -r app/build/outputs/apk/release/termux-app_apt-android-7-release_un
    验证方法：从 APK 里解出 `lib/arm64-v8a/libtermux-bootstrap.so`，
    在其中定位并剥离内嵌 zip（EOCD），比对 SHA-256 与源 zip 一致。
 3. **版本号**：`app/build.gradle` 的 `versionCode`（形如日期 20261002）+ `versionName`
-   （形如 `0.118.0-se12`）。每次对外发布递增，`validateVersionName()` 会做 semver 校验。
+   （形如 `0.118.0-se13`）。每次对外发布递增，`validateVersionName()` 会做 semver 校验。
 
 ## bootstrap 从哪来（不入库的大文件）
 

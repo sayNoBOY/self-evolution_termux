@@ -63,18 +63,38 @@ fi
 
 # --------------------------- 双服务异步守护 ---------------------------
 services_up() {
-	# 后端3000 与 前端5173 都在 LISTEN 即视为就绪（iproute2 的 ss 已随 bootstrap 预置）
-	ss -ltn 2>/dev/null | grep -q ':3000 ' || return 1
-	ss -ltn 2>/dev/null | grep -q ':5173 ' || return 1
+	# REPORT-1 §4.2/§6.3：本环境 ss 读 netlink 恒被拒（Permission denied → 只剩表头），
+	# 改用 HTTP 健康探测（与 restart.sh 冒烟口径一致）：
+	#   后端任意 HTTP 响应（401/403 未登录 = 服务在跑）视为存活；前端 / 需 200
+	c1="$(curl -s -o /dev/null -w '%{http_code}' --max-time 2 http://127.0.0.1:3000/api/v1/auth/me 2>/dev/null)"
+	case "$c1" in
+		200|401|403) ;;
+		*) return 1 ;;
+	esac
+	c2="$(curl -s -o /dev/null -w '%{http_code}' --max-time 2 http://127.0.0.1:5173/ 2>/dev/null)"
+	[ "$c2" = 200 ] || return 1
 	return 0
 }
 
 ensure_services() {
 	# 已就绪则秒退；否则拿锁异步执行（mkdir 原子锁，防并发会话重复拉起）
 	services_up && return 0
-	mkdir "$SE_LOCK" 2>/dev/null || return 0
+	# REPORT-1 §6.1 陈旧锁自愈：守护中途被杀会遗留锁目录，无自愈时所有后续会话
+	# 都会静默跳过拉起（10-06 19:17 事故即此，卡死约 20 小时）。超过 10 分钟视为残留。
+	if ! mkdir "$SE_LOCK" 2>/dev/null; then
+		if [ -n "$(find "$SE_LOCK" -maxdepth 0 -mmin +10 2>/dev/null)" ]; then
+			rmdir "$SE_LOCK" 2>/dev/null
+			mkdir "$SE_LOCK" 2>/dev/null || return 0
+		else
+			return 0
+		fi
+	fi
 	(
 		set +e
+		# REPORT-1 §6.2 锁释放兜底：TERM/HUP/INT/EXIT 均释放锁，杜绝孤儿锁
+		#（SIGKILL 无法 trap —— 由 §6.1 的 10 分钟陈旧锁自愈兜底）
+		trap 'rmdir "$SE_LOCK" 2>/dev/null' EXIT
+		trap 'rmdir "$SE_LOCK" 2>/dev/null; exit 1' HUP INT TERM
 		{
 			echo "[$(date '+%H:%M:%S')] se ensure start"
 			# 1) node/npm 兜底（正常情况下已随 bootstrap 预置，无需联网）

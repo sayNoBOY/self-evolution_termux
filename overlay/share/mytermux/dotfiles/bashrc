@@ -3,5 +3,6 @@ shopt -s histappend
 export HISTCONTROL=ignoreboth
 alias ll='ls -l --color=auto'
 alias la='ls -la --color=auto'
-alias se-status='ss -ltn | grep -E ":3000|:5173"; tail -5 ${TMPDIR:-/tmp}/se-services.log 2>/dev/null'
+# REPORT-1 §4.2：ss 在本环境恒被拒 → se-status 改用 curl 健康码（401 = 后端在跑）
+alias se-status='echo "backend  :3000 -> $(curl -s -o /dev/null -w "%{http_code}" --max-time 2 http://127.0.0.1:3000/api/v1/auth/me)"; echo "frontend :5173 -> $(curl -s -o /dev/null -w "%{http_code}" --max-time 2 http://127.0.0.1:5173/)"; tail -5 ${TMPDIR:-/tmp}/se-services.log 2>/dev/null'
 alias se-restart='$PREFIX/share/selfevolution/restart.sh all'
